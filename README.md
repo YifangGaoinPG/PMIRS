@@ -19,7 +19,7 @@ PMIRS is a lightweight multimodal retrieval framework that supports secure image
 
 We use a customized variant of the official ImageNet-1K dataset for evaluation and retrieval testing. The variant is structured for class-wise folder organization and reduced scale for faster experimentation. Scripts to construct this variant from the original ImageNet-1K dataset are provided in the data/ directory.
 
-If you already have access to \href{https://www.image-net.org/}{ImageNet}, you can use the provided scripts to convert it into the required format.
+If you already have access to [ImageNet](https://www.image-net.org/), you can use the provided scripts to convert it into the required format.
 
 ## Evaluation
 
