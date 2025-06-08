@@ -1,36 +1,46 @@
-
+# --- federated.py ---
+import multiprocessing as mp
 import os
 import torch
-import shutil
-import multiprocessing as mp
-from datetime import datetime
-from fed_utils import average_weights
+from main import main  # ✅ 导入原始训练逻辑
 
 NUM_CLIENTS = 8
 ROUNDS = 3
-BASE_DIR = "./fl_workspace"
-CHECKPOINT_TEMPLATE = os.path.join(BASE_DIR, "client_{}_model.pt")
-AGGREGATED_MODEL_PATH = os.path.join(BASE_DIR, "global_model.pt")
+BASE_DIR = "checkpoints"
+CHECKPOINT_TEMPLATE = os.path.join(BASE_DIR, "client_{}_latest.pt")
+AGGREGATED_MODEL_PATH = os.path.join(BASE_DIR, "aggregated_model.pt")
 
+def run_client(cid, round_id):
+    print(f"--> Client {cid} training for round {round_id}")
+    
+    # 你可以根据需要在这里配置 sys.argv 参数或用 argsparser 的方式传参给 main
+    # 如果 main() 从 argparse 读取参数，则你需要 mock sys.argv
+    import sys
+    sys.argv = [
+        "main.py",
+        "--name", f"client_{cid}_round_{round_id}",
+        "--epochs", "1",
+        "--resume", CHECKPOINT_TEMPLATE.format(cid) if round_id > 0 else "",
+        "--save", CHECKPOINT_TEMPLATE.format(cid),
+        "--batch-size", "64",
+        "--local_rank", "0",  # 非分布式模拟
+        "--dist-url", "env://",
+        "--dist-backend", "nccl"
+    ]
+    
+    main()
 
-def run_client(client_id, round_id):
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(client_id % torch.cuda.device_count())
-    client_ckpt = CHECKPOINT_TEMPLATE.format(client_id)
-    print(f"[Client {client_id}] Training Round {round_id}")
-    os.system(
-        f"python main.py "
-        f"--client_id {client_id} "
-        f"--output {client_ckpt} "
-        f"--round {round_id} "
-        f"--data_split_path ./data_split/client_{client_id}.txt "
-        f"--epochs 1 --distributed 0 --wandb 0 --tensorboard 0"
-    )
-
+def average_weights(ckpt_paths):
+    state_dicts = [torch.load(path, map_location='cpu') for path in ckpt_paths]
+    avg_state = {}
+    for key in state_dicts[0].keys():
+        avg_state[key] = sum(d[key] for d in state_dicts) / len(state_dicts)
+    return avg_state
 
 def federated_train():
     os.makedirs(BASE_DIR, exist_ok=True)
     for round_id in range(ROUNDS):
-        print(f"=== Federated Round {round_id} ===")
+        print(f"\n=== Federated Round {round_id} ===")
         processes = []
         for cid in range(NUM_CLIENTS):
             p = mp.Process(target=run_client, args=(cid, round_id))
@@ -39,11 +49,11 @@ def federated_train():
         for p in processes:
             p.join()
 
+        # Aggregate model checkpoints
         ckpts = [CHECKPOINT_TEMPLATE.format(cid) for cid in range(NUM_CLIENTS)]
         avg_state = average_weights(ckpts)
         torch.save(avg_state, AGGREGATED_MODEL_PATH)
         print(f"✅ Aggregated model saved to {AGGREGATED_MODEL_PATH}\n")
-
 
 if __name__ == "__main__":
     federated_train()
