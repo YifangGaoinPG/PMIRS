@@ -18,7 +18,6 @@ class EmptyOptimizer:
     def zero_grad(self):
         pass
 
-
 def build_optimizer(args, model):
     def exclude(
         n, p): return p.ndim < 2 or "bn" in n or "ln" in n or "bias" in n or 'logit_scale' in n
