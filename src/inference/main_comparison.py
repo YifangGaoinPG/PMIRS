@@ -74,6 +74,12 @@ def generate_random_invertible_matrix(dim, seed=None):
         # Check if the matrix is invertible by computing its determinant
         if torch.det(A) != 0:
             return A
+def set_seed(seed):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def calculate_threshold(num_tests, alpha=1.0, beta=1.0):
     """
@@ -276,6 +282,7 @@ def test_image_text_similarity(model, preprocess, tokenizer, image_dir, label_li
 
 def main():
     # Specify the path to the directory containing images
+    set_seed(seed)
     image_dir = 'image_path'  # Change this to your directory path
     image_files = []
     for root, _, files in os.walk(image_dir):
