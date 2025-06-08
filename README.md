@@ -21,6 +21,10 @@ We use a customized variant of the official ImageNet-1K dataset for evaluation a
 
 If you already have access to [ImageNet](https://www.image-net.org/), you can use the provided scripts to convert it into the required format.
 
+## Model
+
+Model can be trained using code in the src/training/ directory.
+
 ## Evaluation
 
 Results in tables and figures can be supported by evaluation code in the src/inference/ directory.
